@@ -1,59 +1,79 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
-import { Product } from "@prisma/client"
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { Product } from "@prisma/client";
+import { Category } from "@/types/Category";
 
 export default function EditProductPage() {
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const [price, setPrice] = useState("")
-  const [stock, setStock] = useState("")
-  const [image, setImage] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState("")
-  
-  const router = useRouter()
-  const params = useParams()
-  const productId = params.id as string
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [stock, setStock] = useState("");
+  const [image, setImage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState<string>("");
+
+  const router = useRouter();
+  const params = useParams();
+  const productId = params.id as string;
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`/api/products`)
-        const products: Product[] = await res.json()
-        
-        // Find the product with matching id
-        const product = products.find((p) => p.id.toString() === productId)
-        
+        const res = await fetch(`/api/products`);
+        if (!res.ok) throw new Error("Failed to fetch products");
+
+        const products: Product[] = await res.json();
+        const product = products.find((p) => p.id.toString() === productId);
+
         if (product) {
-          setName(product.name)
-          setDescription(product.description)
-          setPrice(product.price.toString())
-          setStock(product.stock.toString())
-          setImage(product.image || "")
+          setName(product.name);
+          setDescription(product.description);
+          setPrice(product.price.toString());
+          setStock(product.stock.toString());
+          setImage(product.image || "");
+          setCategoryId(product.categoryId.toString());
         } else {
-          setError("Product not found")
+          setError("Product not found");
         }
-      } catch (error) {
-        console.error("Failed to fetch product", error)
-        setError("Failed to load product data")
+      } catch (err) {
+        console.error("Error:", err);
+        setError("Failed to load product data");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
     if (productId) {
-      fetchProduct()
+      fetchProduct();
     }
-  }, [productId])
+  }, [productId]);
+
+  // Add a function to fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/categories");
+        if (!res.ok) throw new Error("Failed to fetch categories");
+        const data = await res.json();
+        setCategories(data);
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
-    setError("")
-  
+    e.preventDefault();
+    setSubmitting(true);
+    setError(""); // Clear previous error
+
     try {
       const res = await fetch("/api/products", {
         method: "PUT",
@@ -67,37 +87,39 @@ export default function EditProductPage() {
           price,
           stock,
           image,
+          category: categoryId,
         }),
-      })
-  
-      if (!res.ok) {
-        throw new Error("Failed to update product")
-      }
-  
-      // Redirect to products page after successful update
-      router.push("/products")
-      router.refresh()
-    } catch (error) {
-      console.error("Failed to update product", error)
-      setError("Failed to update product. Please try again.")
+      });
+
+      if (!res.ok) throw new Error("Failed to update product");
+
+      router.push("/admin/product");
+      router.refresh(); // Refresh data after update
+    } catch (err) {
+      console.error("Update error:", err);
+      setError("Failed to update product. Please try again.");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
-  
+  };
+
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto py-10 px-4 text-center">
         <p className="text-gray-500">Loading product data...</p>
       </div>
-    )
+    );
   }
 
   if (error === "Product not found") {
     return (
       <div className="max-w-2xl mx-auto py-10 px-4 text-center">
-        <h1 className="text-2xl font-bold text-red-500 mb-4">Product Not Found</h1>
-        <p className="text-gray-600 mb-6">The product you are trying to edit does not exist.</p>
+        <h1 className="text-2xl font-bold text-red-500 mb-4">
+          Product Not Found
+        </h1>
+        <p className="text-gray-600 mb-6">
+          The product you are trying to edit does not exist.
+        </p>
         <button
           onClick={() => router.push("/products")}
           className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
@@ -105,7 +127,7 @@ export default function EditProductPage() {
           Back to Products
         </button>
       </div>
-    )
+    );
   }
 
   return (
@@ -126,9 +148,16 @@ export default function EditProductPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-xl shadow-md">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 bg-white p-6 rounded-xl shadow-md"
+      >
+        {/* Product Name */}
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Product Name
           </label>
           <input
@@ -142,8 +171,12 @@ export default function EditProductPage() {
           />
         </div>
 
+        {/* Product Description */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Description
           </label>
           <textarea
@@ -156,8 +189,12 @@ export default function EditProductPage() {
           />
         </div>
 
+        {/* Price */}
         <div>
-          <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="price"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Price (Rp)
           </label>
           <input
@@ -173,8 +210,12 @@ export default function EditProductPage() {
           />
         </div>
 
+        {/* Stock */}
         <div>
-          <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="stock"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Stock
           </label>
           <input
@@ -189,8 +230,12 @@ export default function EditProductPage() {
           />
         </div>
 
+        {/* Image URL */}
         <div>
-          <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="image"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Image URL
           </label>
           <input
@@ -206,6 +251,31 @@ export default function EditProductPage() {
           </p>
         </div>
 
+        {/* Category Selection */}
+        <div>
+          <label
+            htmlFor="category"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Category
+          </label>
+          <select
+            id="category"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="border w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+          >
+            <option value="">Select a category</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Submit Button */}
         <div className="flex justify-end pt-4">
           <button
             type="submit"
@@ -219,5 +289,5 @@ export default function EditProductPage() {
         </div>
       </form>
     </div>
-  )
+  );
 }

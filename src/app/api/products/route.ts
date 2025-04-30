@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { prisma } from "../../../../lib/prisma";
 
-// GET: Tampilkan semua produk
+// GET: Get all products
 export async function GET() {
   try {
-    const products = await prisma.product.findMany();
+    const products = await prisma.product.findMany({
+      include: {
+        category: true,
+      },
+    });
     return NextResponse.json(products);
   } catch (error) {
     console.error("GET Error:", error);
@@ -12,19 +17,17 @@ export async function GET() {
   }
 }
 
-// POST: Tambah produk baru
-export async function POST(req: Request) {
+// POST: Create a new product
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, description, price, stock, image } = body;
+    const { name, description, price, stock, category, image } = body;
 
-    // Validasi sederhana
-    if (!name || !description || !price || !stock || !image) {
+    if (!name || !description || price == null || stock == null || !category || !image) {
       return NextResponse.json({ error: "Semua field wajib diisi" }, { status: 400 });
     }
 
-    // Validasi URL gambar
-    if (!image.startsWith("http://") && !image.startsWith("https://")) {
+    if (!/^https?:\/\//.test(image)) {
       return NextResponse.json({ error: "URL gambar tidak valid" }, { status: 400 });
     }
 
@@ -35,6 +38,9 @@ export async function POST(req: Request) {
         price: parseFloat(price),
         stock: parseInt(stock),
         image,
+        category: {
+          connect: { id: Number(category) },
+        },
       },
     });
 
@@ -45,17 +51,17 @@ export async function POST(req: Request) {
   }
 }
 
-// PUT: Update produk
-export async function PUT(req: Request) {
+// PUT: Update a product
+export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, name, description, price, stock, image } = body;
+    const { id, name, description, price, stock, category, image } = body;
 
-    if (!id || !name || !description || !price || !stock || !image) {
+    if (!id || !name || !description || price == null || stock == null || !category || !image) {
       return NextResponse.json({ error: "Semua field wajib diisi" }, { status: 400 });
     }
 
-    if (!image.startsWith("http://") && !image.startsWith("https://")) {
+    if (!/^https?:\/\//.test(image)) {
       return NextResponse.json({ error: "URL gambar tidak valid" }, { status: 400 });
     }
 
@@ -67,18 +73,21 @@ export async function PUT(req: Request) {
         price: parseFloat(price),
         stock: parseInt(stock),
         image,
+        category: {
+          connect: { id: Number(category) },
+        },
       },
     });
 
     return NextResponse.json(updatedProduct);
   } catch (error) {
     console.error("PUT Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: "Produk tidak ditemukan atau terjadi kesalahan" }, { status: 500 });
   }
 }
 
-// DELETE: Hapus produk
-export async function DELETE(req: Request) {
+// DELETE: Delete a product
+export async function DELETE(req: NextRequest) {
   try {
     const body = await req.json();
     const { id } = body;
@@ -94,6 +103,6 @@ export async function DELETE(req: Request) {
     return NextResponse.json(deletedProduct);
   } catch (error) {
     console.error("DELETE Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: "Produk tidak ditemukan atau terjadi kesalahan" }, { status: 500 });
   }
 }
