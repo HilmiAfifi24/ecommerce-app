@@ -3,13 +3,15 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Category } from "@/types/Category"
+import Image from "next/image"
 
 export default function CreateProductPage() {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
   const [stock, setStock] = useState("")
-  const [image, setImage] = useState("")
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState("")
@@ -20,7 +22,8 @@ export default function CreateProductPage() {
     setDescription("")
     setPrice("")
     setStock("")
-    setImage("")
+    setImageFile(null)
+    setImagePreview(null)
     setSelectedCategoryId("")
   }
 
@@ -38,33 +41,88 @@ export default function CreateProductPage() {
     fetchCategories()
   }, [])
 
+  // Handle file selection and generate preview
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Check if file is an image
+    if (!file.type.match('image.*')) {
+      alert('Please select an image file (jpg, jpeg, png, etc.)')
+      return
+    }
+
+    // Check file size (limit to 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File is too large. Maximum size is 5MB.')
+      return
+    }
+
+    setImageFile(file)
+    
+    // Create a preview URL
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          description,
-          price,
-          stock,
-          category: selectedCategoryId, // Send the selected category ID
-          image,
-        }),
-      })
-
-      const response = await res.json()
-      console.log(response)
-
-      if (!res.ok) {
-        throw new Error("Failed to create product")
+      // Validasi file gambar
+      if (!imageFile) {
+        alert("Please upload a product image")
+        setLoading(false)
+        return
       }
 
+      // Create a FormData object to handle file uploads
+      const formData = new FormData()
+      formData.append("name", name)
+      formData.append("description", description)
+      formData.append("price", price)
+      formData.append("stock", stock)
+      formData.append("category", selectedCategoryId)
+      formData.append("image", imageFile)
+
+      // Debug log
+      console.log("Submitting product with data:", {
+        name, 
+        description, 
+        price, 
+        stock, 
+        category: selectedCategoryId,
+        imageFileName: imageFile.name
+      })
+
+      const res = await fetch("/api/products", {
+        method: "POST",
+        body: formData,
+        // Don't set Content-Type header - the browser will set it with the correct boundary for FormData
+      })
+
+      // Debug response
+      const responseText = await res.text()
+      console.log("Server response:", responseText)
+
+      let response
+      try {
+        // Try to parse as JSON
+        response = JSON.parse(responseText)
+      } catch (e) {
+        console.error("Failed to parse response as JSON:", e)
+        throw new Error("Server returned invalid response format")
+      }
+
+      if (!res.ok) {
+        throw new Error(response.message || "Failed to create product")
+      }
+
+      alert("Product created successfully!")
       resetForm()
 
       // Redirect to products page after successful creation
@@ -72,7 +130,7 @@ export default function CreateProductPage() {
       router.refresh()
     } catch (error) {
       console.error("Failed to create product", error)
-      alert("Failed to create product. Please try again.")
+      alert(`Failed to create product:  "Unknown error". Please try again.`)
     } finally {
       setLoading(false)
     }
@@ -150,18 +208,87 @@ export default function CreateProductPage() {
           />
         </div>
 
-        {/* Product Image URL */}
+        {/* Product Image Upload */}
         <div>
-          <label htmlFor="image" className="text-lg font-semibold text-gray-700">Image URL</label>
-          <input
-            id="image"
-            type="text"
-            placeholder="Enter image URL"
-            value={image}
-            onChange={(e) => setImage(e.target.value)}
-            className="mt-2 w-full px-5 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          />
-          <p className="text-sm text-gray-500 mt-1">Optional: Provide a URL to an image of the product</p>
+          <label htmlFor="image" className="text-lg font-semibold text-gray-700">Product Image</label>
+          <div className="mt-2 space-y-4">
+            {/* File upload */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+              <input
+                id="imageFile"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+                required
+              />
+              <label
+                htmlFor="imageFile"
+                className="flex flex-col items-center justify-center cursor-pointer"
+              >
+                <div className="flex items-center justify-center w-full">
+                  <svg
+                    className="w-8 h-8 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    ></path>
+                  </svg>
+                  <span className="ml-2 text-sm text-gray-600">
+                    Click to upload an image
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  PNG, JPG, GIF up to 5MB
+                </p>
+              </label>
+            </div>
+
+            {/* Image preview */}
+            {imagePreview && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+                <div className="relative h-48 w-full overflow-hidden rounded-lg border">
+                  <Image
+                    src={imagePreview}
+                    alt="Preview"
+                    fill
+                    className="object-contain"
+                  />
+                  <button
+                    type="button"
+                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full"
+                    onClick={() => {
+                      setImageFile(null)
+                      setImagePreview(null)
+                    }}
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      ></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Category Selection */}

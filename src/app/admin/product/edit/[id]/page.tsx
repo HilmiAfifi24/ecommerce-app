@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Product } from "@prisma/client";
 import { Category } from "@/types/Category";
+import Image from "next/image";
 
 export default function EditProductPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
-  const [image, setImage] = useState("");
+  const [image, setImage] = useState<File | string>("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -75,20 +76,22 @@ export default function EditProductPage() {
     setError(""); // Clear previous error
 
     try {
-      const res = await fetch("/api/products", {
+      const formData = new FormData();
+      formData.append("id", productId);
+      formData.append("name", name);
+      formData.append("description", description);
+      formData.append("price", price);
+      formData.append("stock", stock);
+      formData.append("category", categoryId);
+      formData.append("image", image);
+
+      if (image instanceof File) {
+        formData.append("image", image);
+      }
+
+      const res = await fetch(`/api/products`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: productId,
-          name,
-          description,
-          price,
-          stock,
-          image,
-          category: categoryId,
-        }),
+        body: formData,
       });
 
       if (!res.ok) throw new Error("Failed to update product");
@@ -230,25 +233,46 @@ export default function EditProductPage() {
           />
         </div>
 
-        {/* Image URL */}
+
+        {/* Image Upload */}
         <div>
           <label
             htmlFor="image"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Image URL
+            Upload Image
           </label>
           <input
             id="image"
-            type="text"
-            placeholder="Enter image URL"
-            value={image}
-            onChange={(e) => setImage(e.target.value)}
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setImage(file);
+              }
+            }}
             className="border w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
-          <p className="text-sm text-gray-500 mt-1">
-            Optional: Provide a URL to an image of the product
-          </p>
+          {typeof image === "string" ? (
+            image && (
+              <Image
+              width={100}
+              height={100}
+                src={image}
+                alt="Product Preview"
+                className="mt-2 max-h-40 rounded"
+              />
+            )
+          ) : (
+            <Image
+              width={100}
+              height={100}
+              src={URL.createObjectURL(image)}
+              alt="Selected Preview"
+              className="mt-2 max-h-40 rounded"
+            />
+          )}
         </div>
 
         {/* Category Selection */}

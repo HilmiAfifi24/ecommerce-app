@@ -18,7 +18,7 @@ export default function ProductPage() {
   const fetchProducts = async () => {
     try {
       const res = await fetch("/api/products")
-      if (!res.ok) throw new Error("Gagal mengambil data produk")
+      // if (!res.ok) throw new Error("Gagal mengambil data produk")
       const data = await res.json()
       setProducts(data)
       setFilteredProducts(data)
