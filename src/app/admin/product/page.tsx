@@ -19,7 +19,16 @@ export default function ProductPage() {
     try {
       const res = await fetch("/api/products")
       // if (!res.ok) throw new Error("Gagal mengambil data produk")
+      // if (!res.ok) {
+      //   throw new Error(`Failed to fetch products: ${res.status}`)
+      // }
       const data = await res.json()
+      if(!Array.isArray(data)) {
+        console.error("Api tidak termasuk array", data);
+        setProducts([]);
+        setFilteredProducts([]);
+        return
+      }
       setProducts(data)
       setFilteredProducts(data)
     } catch (err) {
@@ -66,7 +75,9 @@ export default function ProductPage() {
 
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem)
+  const currentItems = Array.isArray(filteredProducts) 
+  ? filteredProducts.slice(indexOfFirstItem, indexOfLastItem) 
+  : []
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
 
   return (
@@ -105,7 +116,7 @@ export default function ProductPage() {
                       src={product.image}
                       alt={product.name}
                       fill
-                      className="object-cover transition-transform duration-500 ease-in-out transform hover:scale-110"
+                      className="object-cover transition-transform duration-500 ease-in-out transform hover:scale-150"
                     />
                   ) : (
                     <div className="bg-gray-300 h-full flex items-center justify-center">

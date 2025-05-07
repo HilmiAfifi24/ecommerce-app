@@ -18,9 +18,14 @@ export default function CategoryPage() {
   const fetchCategories = async () => {
     try {
       const res = await fetch("/api/categories")
-      if (!res.ok) throw new Error("Failed to fetch categories")
 
       const data = await res.json()
+      if(!Array.isArray(data)) {
+        console.error("Api tidak termasuk array", data);
+        setCategories([])
+        setFilteredCategories([])
+        return
+      }
       setCategories(data)
       setFilteredCategories(data)
     } catch (error) {
@@ -45,7 +50,9 @@ export default function CategoryPage() {
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems = filteredCategories.slice(indexOfFirstItem, indexOfLastItem)
+  const currentItems = Array.isArray(filteredCategories) 
+  ? filteredCategories.slice(indexOfFirstItem, indexOfLastItem) 
+  : []
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage)
 
   // Delete category handler
