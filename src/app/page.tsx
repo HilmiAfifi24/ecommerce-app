@@ -1,102 +1,123 @@
-import Image from "next/image";
+  import { ArrowRight, ShoppingCart, User, Shield } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 flex flex-col">
+      {/* Main Content */}
+      <main className="flex-grow flex flex-col items-center justify-center px-4 py-12">
+        <div className="max-w-4xl mx-auto text-center">
+          {/* Logo */}
+          <div className="flex justify-center mb-8">
+            <div className="flex items-center gap-3">
+              <ShoppingCart className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+              <span className="text-3xl font-bold">ShopNow</span>
+            </div>
+          </div>
+          
+          {/* Intro Text */}
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900 dark:text-white">
+            Selamat Datang di ShopNow
+          </h1>
+          
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+            Platform e-commerce terlengkap dengan ribuan produk berkualitas untuk memenuhi kebutuhan Anda.
+          </p>
+          
+          {/* App Description */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-12">
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="flex flex-col items-center text-center">
+                <ShoppingCart className="w-12 h-12 text-blue-600 dark:text-blue-400 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Beragam Produk</h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Ribuan produk berkualitas dari berbagai kategori
+                </p>
+              </div>
+              
+              <div className="flex flex-col items-center text-center">
+                <User className="w-12 h-12 text-blue-600 dark:text-blue-400 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Pengalaman Pengguna</h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Interface yang intuitif dan mudah digunakan
+                </p>
+              </div>
+              
+              <div className="flex flex-col items-center text-center">
+                <Shield className="w-12 h-12 text-blue-600 dark:text-blue-400 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Transaksi Aman</h3>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Jaminan keamanan dalam setiap transaksi
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Access Buttons */}
+          <div className="flex flex-col md:flex-row gap-6 justify-center">
+            <a 
+              href="/admin" 
+              className="flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md dark:bg-blue-500 dark:hover:bg-blue-600 w-full md:w-64"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="w-5 h-5"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              Akses Admin
+              <ArrowRight className="w-5 h-5" />
+            </a>
+            
+            <a 
+              href="/users/home" 
+              className="flex items-center justify-center gap-2 px-8 py-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors shadow-md dark:bg-gray-700 dark:hover:bg-gray-600 w-full md:w-64"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" 
+                height="24" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="w-5 h-5"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              Akses User
+              <ArrowRight className="w-5 h-5" />
+            </a>
+          </div>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      
+      {/* Footer */}
+      <footer className="py-6 px-4 bg-gray-100 dark:bg-gray-800">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+          <div className="flex items-center gap-2 mb-4 md:mb-0">
+            <ShoppingCart className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <span className="text-lg font-bold">ShopNow</span>
+          </div>
+          
+          <p className="text-gray-600 dark:text-gray-300 text-sm text-center md:text-right">
+            © 2025 ShopNow. Hak Cipta Dilindungi. <br className="md:hidden" />
+            <span className="hidden md:inline">|</span> Versi 1.0.0
+          </p>
+        </div>
       </footer>
     </div>
   );
