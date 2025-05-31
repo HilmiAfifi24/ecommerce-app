@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'google.com', // Menambahkan domain plus.unsplash.com untuk gambar premium
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'commerce123.s3.us-east-1.amazonaws.com',
+        pathname: '/**',
       }
     ],
   },

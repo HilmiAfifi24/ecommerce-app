@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, ChangeEvent, FormEvent } from "react"; // Import specific event types
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -12,7 +12,8 @@ export default function ContactPage() {
 
   const [submitted, setSubmitted] = useState(false);
 
-  const handleChange = (e) => {
+  // Add type for 'e'
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -20,7 +21,8 @@ export default function ContactPage() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  // Add type for 'e'
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Here you would typically handle the form submission with API call
     console.log("Form submitted:", formData);
@@ -42,14 +44,14 @@ export default function ContactPage() {
       {/* Hero Section */}
       <div className="relative h-[300px] overflow-hidden">
         <div className="absolute inset-0 bg-indigo-900 bg-opacity-70 z-10"></div>
-        <div 
+        <div
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: "url('/api/placeholder/1920/400')" }}
         ></div>
         <div className="container mx-auto px-6 relative z-20 h-full flex flex-col justify-center items-center text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Contact Us</h1>
           <p className="text-xl text-white max-w-2xl">
-            We'd love to hear from you. Heres how you can reach us.
+            Wed love to hear from you. Heres how you can reach us.
           </p>
         </div>
       </div>
@@ -122,7 +124,7 @@ export default function ContactPage() {
             <p className="text-gray-600 mb-8">
               Have a question or feedback? Fill out the form below and well get back to you as soon as possible.
             </p>
-            
+
             {submitted ? (
               <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-lg mb-6">
                 <p className="font-medium">Thank you for your message!</p>
@@ -132,9 +134,9 @@ export default function ContactPage() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label htmlFor="name" className="block text-gray-700 font-medium mb-2">Your Name</label>
-                  <input 
-                    type="text" 
-                    id="name" 
+                  <input
+                    type="text"
+                    id="name"
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
@@ -145,9 +147,9 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <label htmlFor="email" className="block text-gray-700 font-medium mb-2">Email Address</label>
-                  <input 
-                    type="email" 
-                    id="email" 
+                  <input
+                    type="email"
+                    id="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
@@ -158,9 +160,9 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <label htmlFor="subject" className="block text-gray-700 font-medium mb-2">Subject</label>
-                  <input 
-                    type="text" 
-                    id="subject" 
+                  <input
+                    type="text"
+                    id="subject"
                     name="subject"
                     value={formData.subject}
                     onChange={handleChange}
@@ -171,8 +173,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <label htmlFor="message" className="block text-gray-700 font-medium mb-2">Your Message</label>
-                  <textarea 
-                    id="message" 
+                  <textarea
+                    id="message"
                     name="message"
                     value={formData.message}
                     onChange={handleChange}
@@ -188,14 +190,14 @@ export default function ContactPage() {
               </form>
             )}
           </div>
-          
+
           {/* Map and Office Locations */}
           <div className="md:w-1/2">
             <h2 className="text-3xl font-bold text-gray-800 mb-6">Visit Our Offices</h2>
             <div className="bg-gray-200 rounded-lg h-64 mb-6 overflow-hidden">
               {/* Placeholder for map - in a real application, you would embed a Google Map or similar here */}
               <div className="w-full h-full bg-cover bg-center relative">
-                <div 
+                <div
                   className="absolute inset-0 bg-cover bg-center"
                   style={{ backgroundImage: "url('/api/placeholder/800/300')" }}
                 ></div>
@@ -206,7 +208,7 @@ export default function ContactPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-6">
               <div className="flex items-start">
                 <div className="text-indigo-600 mr-4">
@@ -217,10 +219,10 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-800">New York (Headquarters)</h3>
-                  <p className="text-gray-600">123 Fifth Avenue, Suite 1500<br/>New York, NY 10010</p>
+                  <p className="text-gray-600">123 Fifth Avenue, Suite 1500<br />New York, NY 10010</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start">
                 <div className="text-indigo-600 mr-4">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -230,10 +232,10 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-800">London</h3>
-                  <p className="text-gray-600">456 Oxford Street<br/>London, W1C 1AP</p>
+                  <p className="text-gray-600">456 Oxford Street<br />London, W1C 1AP</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start">
                 <div className="text-indigo-600 mr-4">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -243,7 +245,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-800">Tokyo</h3>
-                  <p className="text-gray-600">789 Shibuya Street<br/>Tokyo, 150-0002</p>
+                  <p className="text-gray-600">789 Shibuya Street<br />Tokyo, 150-0002</p>
                 </div>
               </div>
             </div>
@@ -255,7 +257,7 @@ export default function ContactPage() {
       <div className="bg-gray-100 py-16">
         <div className="container mx-auto px-6">
           <h2 className="text-3xl font-bold text-gray-800 text-center mb-12">Frequently Asked Questions</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {[
               {
@@ -281,7 +283,7 @@ export default function ContactPage() {
               </div>
             ))}
           </div>
-          
+
           <div className="text-center mt-12">
             <p className="text-gray-600 mb-4">Cant find the answer youre looking for?</p>
             <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
@@ -298,18 +300,18 @@ export default function ContactPage() {
           <p className="text-white/80 max-w-2xl mx-auto mb-8">
             Subscribe to our newsletter to receive updates on new products, special offers, and exclusive content.
           </p>
-          
+
           <form className="flex flex-col sm:flex-row max-w-lg mx-auto gap-4">
-            <input 
-              type="email" 
-              placeholder="Your email address" 
+            <input
+              type="email"
+              placeholder="Your email address"
               className="flex-grow px-4 py-3 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
             />
             <button type="submit" className="px-6 py-3 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-medium rounded-lg transition-colors whitespace-nowrap">
               Subscribe Now
             </button>
           </form>
-          
+
           <div className="flex justify-center mt-8 space-x-6">
             {['facebook', 'twitter', 'instagram', 'linkedin'].map(platform => (
               <a key={platform} href="#" className="text-white hover:text-yellow-400 transition-colors">

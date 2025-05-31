@@ -18,10 +18,6 @@ export default function ProductPage() {
   const fetchProducts = async () => {
     try {
       const res = await fetch("/api/products")
-      // if (!res.ok) throw new Error("Gagal mengambil data produk")
-      // if (!res.ok) {
-      //   throw new Error(`Failed to fetch products: ${res.status}`)
-      // }
       const data = await res.json()
       if(!Array.isArray(data)) {
         console.error("Api tidak termasuk array", data);
