@@ -44,13 +44,13 @@ export default function CreateProductPage() {
              // Opsional: set kategori pertama sebagai default jika belum ada yang dipilih
              // setSelectedCategoryId(data[0].id.toString());
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error("FRONTEND: Exception while fetching categories:", err);
-        setError(`Could not load categories: ${err.message}`);
+        setError(`Could not load categories:`);
       }
     }
     fetchCategories()
-  }, []); // Dependency array kosong agar hanya fetch sekali
+  },); // Dependency array kosong agar hanya fetch sekali
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => { // Tipe event yang benar
     e.preventDefault();
@@ -136,10 +136,10 @@ export default function CreateProductPage() {
       resetForm();
       router.push("/admin/product"); // Sesuaikan rute jika perlu
       router.refresh(); // Untuk memastikan data baru diambil jika halaman produk menampilkan daftar
-    } catch (err: any) { // Menangkap semua error dari fetch, parsing, atau !res.ok
+    } catch (err) { // Menangkap semua error dari fetch, parsing, atau !res.ok
       console.error("FRONTEND: Error during product submission:", err);
-      setError(err.message || "An unexpected error occurred during submission."); // Tampilkan error di UI
-      alert(`Failed to create product: ${err.message || "Unknown error"}. Please check the console and try again.`);
+      setError("An unexpected error occurred during submission."); // Tampilkan error di UI
+      alert(`Failed to create product. Please check the console and try again.`);
     } finally {
       setLoading(false);
     }
