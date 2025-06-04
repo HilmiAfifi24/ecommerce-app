@@ -1,3 +1,4 @@
+// src/app/admin/product/create/page.tsx
 "use client";
 
 import { useState, useEffect, FormEvent, ChangeEvent } from "react";
@@ -16,7 +17,7 @@ export default function CreateProductPage() {
   const [loading, setLoading] = useState(false); // Untuk proses submit
   const [categoriesLoading, setCategoriesLoading] = useState(true); // Untuk fetch kategori
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState(""); // Defaultnya string kosong
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -27,13 +28,14 @@ export default function CreateProductPage() {
     setStock("");
     setImageFile(null);
     setImagePreviewUrl(null);
-    setSelectedCategoryId(categories.length > 0 ? categories[0].id.toString() : ""); // Set ke kategori pertama jika ada
+    // Set ke kategori pertama jika ada, atau string kosong jika tidak ada kategori
+    setSelectedCategoryId(categories.length > 0 ? categories[0].id.toString() : "");
     setError(null);
-    // Kosongkan juga input file secara manual
     const fileInput = document.getElementById('imageFile') as HTMLInputElement;
     if (fileInput) fileInput.value = "";
   };
 
+  // Effect untuk mengambil kategori (hanya sekali saat komponen dimuat)
   useEffect(() => {
     const fetchCategories = async () => {
       setCategoriesLoading(true);
@@ -48,10 +50,7 @@ export default function CreateProductPage() {
         const data: Category[] = await res.json();
         console.log("FRONTEND: Categories fetched successfully:", data);
         setCategories(data);
-        if (data.length > 0 && !selectedCategoryId) {
-          setSelectedCategoryId(data[0].id.toString()); // Set kategori pertama sebagai default
-        }
-      } catch (err: any) { // Lebih baik menggunakan 'any' atau 'unknown' dan type guard
+      } catch (err: any) {
         console.error("FRONTEND: Exception while fetching categories:", err);
         setError(err.message || "Could not load categories. Please try again.");
       } finally {
@@ -59,14 +58,21 @@ export default function CreateProductPage() {
       }
     };
     fetchCategories();
-  }, []); // Dependency array kosong sudah benar agar hanya fetch sekali
+  }, []); // Array dependensi kosong agar hanya fetch sekali
+
+  // Effect untuk mengatur kategori default ketika kategori sudah dimuat atau selectedCategoryId belum di-set
+  useEffect(() => {
+    if (categories.length > 0 && selectedCategoryId === "") {
+      setSelectedCategoryId(categories[0].id.toString());
+    }
+  }, [categories, selectedCategoryId]); // Perhatikan dependensi di sini
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
         alert("Invalid file type. Please select an image.");
-        e.target.value = ""; // Reset input file jika tidak valid
+        e.target.value = "";
         setImageFile(null);
         setImagePreviewUrl(null);
         return;
@@ -83,22 +89,18 @@ export default function CreateProductPage() {
     }
   };
 
-  // useEffect untuk cleanup FileReader result (Data URL) tidak diperlukan karena tidak menggunakan createObjectURL.
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     console.log("FRONTEND: handleSubmit triggered for Create Product.");
 
-    // Validasi frontend (sudah cukup baik)
     if (!name.trim()) { setError("Product name is required."); setLoading(false); return; }
     if (!description.trim()) { setError("Product description is required."); setLoading(false); return; }
-    if (!price.trim() || parseFloat(price) < 0) { setError("Valid product price is required."); setLoading(false); return; }
-    if (!stock.trim() || parseInt(stock, 10) < 0) { setError("Valid product stock is required."); setLoading(false); return; }
+    if (!price.trim() || parseFloat(price) <= 0) { setError("Valid positive product price is required."); setLoading(false); return; } // Harga harus positif
+    if (!stock.trim() || parseInt(stock, 10) < 0) { setError("Valid non-negative product stock is required."); setLoading(false); return; } // Stok tidak boleh negatif
     if (!selectedCategoryId) { setError("Please select a category."); setLoading(false); return; }
     if (!imageFile) { setError("Product image is required."); setLoading(false); return; }
-    // Validasi tipe file sudah di handleImageChange
 
     const formData = new FormData();
     formData.append("name", name.trim());
@@ -106,7 +108,7 @@ export default function CreateProductPage() {
     formData.append("price", price);
     formData.append("stock", stock);
     formData.append("category", selectedCategoryId);
-    formData.append("image", imageFile); // File gambar
+    formData.append("image", imageFile);
 
     console.log("FRONTEND: Submitting new product with FormData (to /api/products)...");
     for (const [key, value] of formData.entries()) {
@@ -119,7 +121,7 @@ export default function CreateProductPage() {
         body: formData,
       });
 
-      const responseText = await res.text(); // Selalu ambil teks dulu untuk debugging
+      const responseText = await res.text();
       console.log("FRONTEND: Server Response Status:", res.status, res.statusText);
       console.log("FRONTEND: Server Response Text:", responseText);
 
@@ -128,13 +130,13 @@ export default function CreateProductPage() {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
         console.error("FRONTEND: Failed to parse server response as JSON:", parseError);
-        if (responseText.toLowerCase().includes("<html")) { // Cek jika respons adalah halaman HTML (seringkali error server)
+        if (responseText.toLowerCase().includes("<html")) {
           setError("Server returned an HTML error page. Check server logs (terminal) for details.");
         } else {
           setError(`Server returned an unparseable response (Status: ${res.status}): ${responseText.substring(0, 200)}...`);
         }
         setLoading(false);
-        return; // Hentikan eksekusi jika gagal parse dan bukan JSON
+        return;
       }
 
       console.log("FRONTEND: Parsed Server Response Data:", responseData);
@@ -148,18 +150,16 @@ export default function CreateProductPage() {
       console.log("FRONTEND: Product created successfully! Server Data:", responseData);
       alert("Product created successfully!");
       resetForm();
-      router.push("/admin/product"); // Arahkan ke daftar produk atau halaman detail jika ada
-      router.refresh(); // Penting untuk memuat ulang data di halaman tujuan jika menggunakan cache Next.js
+      router.push("/admin/product");
+      router.refresh();
     } catch (err: any) {
       console.error("FRONTEND: Error during product submission:", err);
       setError(err.message || "An unexpected error occurred during submission. Please check console.");
-      // Tidak perlu alert di sini karena sudah ada tampilan error di form
     } finally {
       setLoading(false);
     }
   };
 
-  // JSX (Struktur visual Anda sudah bagus, saya fokus pada logika)
   return (
     <div className="max-w-4xl mx-auto py-16 px-6 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-100">
       <div className="flex justify-between items-center mb-8">
@@ -179,7 +179,6 @@ export default function CreateProductPage() {
           </div>
         )}
 
-        {/* Nama Produk */}
         <div>
           <label htmlFor="name" className="text-lg font-semibold text-gray-700">Product Name</label>
           <input id="name" type="text" placeholder="Enter product name" value={name}
@@ -189,7 +188,6 @@ export default function CreateProductPage() {
           />
         </div>
 
-        {/* Deskripsi Produk */}
         <div>
           <label htmlFor="description" className="text-lg font-semibold text-gray-700">Description</label>
           <textarea id="description" placeholder="Enter product description" value={description}
@@ -199,17 +197,15 @@ export default function CreateProductPage() {
           />
         </div>
         
-        {/* Harga Produk */}
         <div>
           <label htmlFor="price" className="text-lg font-semibold text-gray-700">Price (Rp)</label>
           <input id="price" type="number" placeholder="Enter price" value={price}
             onChange={(e) => setPrice(e.target.value)}
             className="mt-2 w-full px-5 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            min="0" required
+            min="0.01" step="any" required // Harga harus lebih dari 0, bisa desimal
           />
         </div>
 
-        {/* Stok Produk */}
         <div>
           <label htmlFor="stock" className="text-lg font-semibold text-gray-700">Stock</label>
           <input id="stock" type="number" placeholder="Enter stock quantity" value={stock}
@@ -219,7 +215,6 @@ export default function CreateProductPage() {
           />
         </div>
 
-        {/* Input File Gambar */}
         <div>
           <label htmlFor="imageFile" className="text-lg font-semibold text-gray-700">Product Image</label>
           <input
@@ -228,7 +223,7 @@ export default function CreateProductPage() {
             accept="image/*"
             onChange={handleImageChange}
             className="mt-2 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-3 file:px-5 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-            required // Gambar wajib saat create
+            required
           />
           {imagePreviewUrl && (
             <div className="mt-4">
@@ -238,7 +233,8 @@ export default function CreateProductPage() {
                   src={imagePreviewUrl}
                   alt="Image Preview"
                   fill
-                  className="object-contain" // Gunakan object-contain agar gambar tidak terpotong
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Tambahkan prop sizes
+                  className="object-contain"
                   onError={() => { console.warn("FRONTEND: Failed to load image preview from local data URL") }}
                 />
                 <button
@@ -261,14 +257,13 @@ export default function CreateProductPage() {
           )}
         </div>
 
-        {/* Pemilihan Kategori */}
         <div>
           <label htmlFor="category" className="text-lg font-semibold text-gray-700">Category</label>
           <select id="category" value={selectedCategoryId}
             onChange={(e) => setSelectedCategoryId(e.target.value)}
             className="mt-2 w-full px-5 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             required
-            disabled={categoriesLoading} // Disable selama kategori dimuat
+            disabled={categoriesLoading}
           >
             <option value="" disabled>{categoriesLoading ? "Loading categories..." : "Select a category"}</option>
             {!categoriesLoading && categories.length === 0 && <option value="" disabled>No categories available</option>}
@@ -280,10 +275,9 @@ export default function CreateProductPage() {
           </select>
         </div>
 
-        {/* Tombol Submit */}
         <div className="flex justify-end pt-6">
           <button
-            type="submit" disabled={loading || categoriesLoading} // Disable juga jika kategori masih loading
+            type="submit" disabled={loading || categoriesLoading}
             className={`px-6 py-3 rounded-lg text-white font-semibold shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 ${
               (loading || categoriesLoading) ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
             }`}

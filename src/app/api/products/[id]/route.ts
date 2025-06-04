@@ -1,11 +1,12 @@
-// app/api/products/[id]/route.ts
-import { NextRequest, NextResponse } from 'next/server'; // Impor NextRequest
-import { prisma } from '../../../../../lib/prisma';
+// src/app/api/products/[id]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../../lib/prisma'; // Pastikan path ini benar
 
 export async function GET(
-  request: NextRequest, // Gunakan NextRequest di sini
-  { params }: { params: { id: string } }
+  request: NextRequest, // request tetap NextRequest
+  context: { params: { id: string } } // Gunakan 'context' dan definisikan tipenya secara langsung
 ) {
+  const { params } = context; // Destructure params dari context di sini
   const productId = parseInt(params.id, 10);
 
   if (isNaN(productId)) {
@@ -15,7 +16,7 @@ export async function GET(
   try {
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      // include: { category: true }, // Sertakan jika Anda ingin menampilkan nama kategori juga
+      // include: { category: true }, // Sertakan jika Anda ingin menampilkan nama kategori juga (misalnya di halaman edit)
     });
 
     if (!product) {
@@ -24,6 +25,7 @@ export async function GET(
     return NextResponse.json(product);
   } catch (error) {
     console.error(`Error fetching product with ID ${productId}:`, error);
-    return NextResponse.json({ error: "Failed to fetch product details" }, { status: 500 });
+    // Sembunyikan detail error internal dari client di production
+    return NextResponse.json({ error: "Failed to fetch product details. Please try again later." }, { status: 500 });
   }
 }
