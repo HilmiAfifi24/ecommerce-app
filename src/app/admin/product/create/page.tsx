@@ -2,8 +2,8 @@
 
 import { useState, useEffect, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Category } from "@/types/Category";
-import Image from "next/image";
+import { Category } from "@/types/Category"; // Pastikan path ini benar
+import Image from "next/image"; // Pastikan Image diimpor
 
 export default function CreateProductPage() {
   const [name, setName] = useState("");
@@ -51,13 +51,15 @@ export default function CreateProductPage() {
         if (data.length > 0 && !selectedCategoryId) {
           setSelectedCategoryId(data[0].id.toString()); // Set kategori pertama sebagai default
         }
-      } catch (err) {
+      } catch (err: any) { // Lebih baik menggunakan 'any' atau 'unknown' dan type guard
         console.error("FRONTEND: Exception while fetching categories:", err);
-        setError(`Could not load categories:`);
+        setError(err.message || "Could not load categories. Please try again.");
+      } finally {
+        setCategoriesLoading(false);
       }
-    }
-    fetchCategories()
-  },); // Dependency array kosong agar hanya fetch sekali
+    };
+    fetchCategories();
+  }, []); // Dependency array kosong sudah benar agar hanya fetch sekali
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -146,12 +148,12 @@ export default function CreateProductPage() {
       console.log("FRONTEND: Product created successfully! Server Data:", responseData);
       alert("Product created successfully!");
       resetForm();
-      router.push("/admin/product"); // Sesuaikan rute jika perlu
-      router.refresh(); // Untuk memastikan data baru diambil jika halaman produk menampilkan daftar
-    } catch (err) { // Menangkap semua error dari fetch, parsing, atau !res.ok
+      router.push("/admin/product"); // Arahkan ke daftar produk atau halaman detail jika ada
+      router.refresh(); // Penting untuk memuat ulang data di halaman tujuan jika menggunakan cache Next.js
+    } catch (err: any) {
       console.error("FRONTEND: Error during product submission:", err);
-      setError("An unexpected error occurred during submission."); // Tampilkan error di UI
-      alert(`Failed to create product. Please check the console and try again.`);
+      setError(err.message || "An unexpected error occurred during submission. Please check console.");
+      // Tidak perlu alert di sini karena sudah ada tampilan error di form
     } finally {
       setLoading(false);
     }

@@ -461,6 +461,9 @@ export async function DELETE(req: NextRequest) {
      if (error instanceof SyntaxError && error.message.includes("JSON")) {
       return NextResponse.json({ error: "Format JSON pada request body tidak valid." }, { status: 400 });
     }
+    // Error S3 pada saat deleteS3ObjectByUrl tidak akan menghentikan respons sukses penghapusan produk dari DB
+    // jadi tidak perlu penanganan khusus di sini yang mengembalikan status error ke client,
+    // kecuali jika Anda ingin memberitahu client bahwa penghapusan gambar gagal (namun produknya tetap terhapus).
     return handlePrismaError(error, "penghapusan produk", productId);
   }
 }
