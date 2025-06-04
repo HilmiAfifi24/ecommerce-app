@@ -21,6 +21,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'ecommerce-integrasi.s3.ap-southeast-1.amazonaws.com',
+        pathname: '/**',
+      },
+            {
+        protocol: 'https',
         hostname: 'commerce123.s3.us-east-1.amazonaws.com',
         pathname: '/**',
       }

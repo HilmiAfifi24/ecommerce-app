@@ -1,22 +1,40 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent, ChangeEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Product } from "@prisma/client"; // Pastikan tipe Product diimpor dengan benar
-import { Category } from "@/types/Category"; // Pastikan path ini benar
+import { Product as ProductType } from "@prisma/client"; // Ganti nama impor agar tidak bentrok
+import { Category } from "@/types/Category";
 import Image from "next/image";
+
+// Anda mungkin perlu membuat endpoint API spesifik untuk mengambil satu produk
+// misalnya: app/api/products/[id]/route.ts
+// async function GET(request: Request, { params }: { params: { id: string } }) {
+//   const productId = parseInt(params.id, 10);
+//   if (isNaN(productId)) return NextResponse.json({ error: "Invalid product ID" }, { status: 400 });
+//   try {
+//     const product = await prisma.product.findUnique({ where: { id: productId }, include: { category: true }});
+//     if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+//     return NextResponse.json(product);
+//   } catch (error) { ... }
+// }
 
 export default function EditProductPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
-  const [imageUrl, setImageUrl] = useState(""); // State untuk URL gambar (selalu string)
-  const [loading, setLoading] = useState(true);
+  
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>(""); 
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  const [newImagePreviewUrl, setNewImagePreviewUrl] = useState<string | null>(null);
+  const [removeCurrentImage, setRemoveCurrentImage] = useState<boolean>(false);
+
+  const [loadingInitialData, setLoadingInitialData] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null); // Bisa null untuk error awal
+  const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<string>("");
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   const router = useRouter();
   const params = useParams();
@@ -24,324 +42,303 @@ export default function EditProductPage() {
 
   useEffect(() => {
     const fetchProductAndCategories = async () => {
-      setLoading(true);
+      if (!productId) {
+        setError("Product ID is missing.");
+        setLoadingInitialData(false);
+        setCategoriesLoading(false);
+        return;
+      }
+      setLoadingInitialData(true);
+      setCategoriesLoading(true);
       setError(null);
       try {
         // Fetch categories
-        const catRes = await fetch("/api/categories"); // Ganti dengan endpoint kategori Anda
-        if (!catRes.ok) throw new Error("Failed to fetch categories");
-        const catData = await catRes.json();
+        const catRes = await fetch("/api/categories");
+        if (!catRes.ok) {
+            const errData = await catRes.json().catch(() => ({}));
+            throw new Error(errData.error || "Failed to fetch categories");
+        }
+        const catData: Category[] = await catRes.json();
         setCategories(catData);
+        setCategoriesLoading(false);
 
         // Fetch product details
-        // Anda mungkin perlu endpoint spesifik untuk GET /api/products/[id]
-        // atau filter di client-side seperti yang Anda lakukan (kurang efisien jika banyak produk)
-        // Untuk contoh ini, kita asumsikan endpoint /api/products mengembalikan semua, lalu kita filter
-        const prodRes = await fetch(`/api/products`);
-        if (!prodRes.ok) throw new Error("Failed to fetch products");
-
-        const products: Product[] = await prodRes.json();
-        const product = products.find((p) => p.id.toString() === productId);
-
-        if (product) {
-          setName(product.name);
-          setDescription(product.description || ""); // Handle jika description bisa null
-          setPrice(product.price.toString());
-          setStock(product.stock.toString());
-          setImageUrl(product.image || ""); // product.image harusnya sudah URL string
-          setCategoryId(product.categoryId.toString());
-        } else {
-          setError("Product not found");
+        // Pastikan Anda memiliki endpoint seperti /api/products/[id]
+        const prodRes = await fetch(`/api/products/${productId}`); 
+        if (!prodRes.ok) {
+          const errData = await prodRes.json().catch(() => ({}));
+          if (prodRes.status === 404) throw new Error(errData.error || "Product not found");
+          throw new Error(errData.error || "Failed to fetch product details");
         }
-      } catch (err) {
-        console.error("Error:", err);
-        setError("Failed to load product data");
+        
+        const product: ProductType = await prodRes.json();
+
+        setName(product.name);
+        setDescription(product.description || "");
+        setPrice(product.price.toString());
+        setStock(product.stock.toString());
+        setCurrentImageUrl(product.image || "");
+        setCategoryId(product.categoryId.toString());
+        setRemoveCurrentImage(false);
+        setNewImageFile(null);
+        setNewImagePreviewUrl(null);
+
+      } catch (err: any) {
+        console.error("FRONTEND: Error fetching data for edit page:", err);
+        setError(err.message || "Failed to load product data. Please try again.");
+        // Jika kategori gagal dimuat, setCategoriesLoading tetap false
+        if (categories.length === 0) setCategoriesLoading(false);
       } finally {
-        setLoading(false);
+        setLoadingInitialData(false);
       }
     };
 
-    if (productId) {
-      fetchProductAndCategories();
+    fetchProductAndCategories();
+  }, [productId]); // Jalankan ulang jika productId berubah (seharusnya tidak sering)
+
+  const handleNewImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert("Invalid file type. Please select an image.");
+        e.target.value = "";
+        setNewImageFile(null);
+        setNewImagePreviewUrl(null);
+        return;
+      }
+      setNewImageFile(file);
+      setRemoveCurrentImage(false); 
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewImagePreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     } else {
-      setError("Product ID is missing."); // Handle jika tidak ada productId
-      setLoading(false);
+      setNewImageFile(null);
+      setNewImagePreviewUrl(null);
     }
-  }, [productId]);
+  };
+  
+  // Cleanup FileReader result (Data URL) tidak diperlukan.
 
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    console.log("FRONTEND: handleSubmit triggered for Update Product.");
 
-    // Validasi URL gambar jika diisi
-    if (imageUrl.trim() !== "") {
-        try {
-            new URL(imageUrl);
-        } catch (err) {
-            console.error("Invalid image URL:", imageUrl, err);
-            setError("Invalid image URL format.");
-            setSubmitting(false);
-            return;
-        }
-    } else {
-        // Jika URL gambar dikosongkan, Anda mungkin ingin validasi atau biarkan backend yang menghandle
-        // Untuk saat ini, kita izinkan URL kosong (backend akan menggunakan yang lama jika tidak ada gambar baru)
+    if (!name.trim()) { setError("Product name is required."); setSubmitting(false); return; }
+    if (!description.trim()) { setError("Product description is required."); setSubmitting(false); return; }
+    if (!price.trim() || parseFloat(price) < 0) { setError("Valid product price is required."); setSubmitting(false); return; }
+    if (!stock.trim() || parseInt(stock, 10) < 0) { setError("Valid product stock is required."); setSubmitting(false); return; }
+    if (!categoryId) { setError("Please select a category."); setSubmitting(false); return; }
+
+    const formData = new FormData();
+    formData.append("id", productId);
+    formData.append("name", name.trim());
+    formData.append("description", description.trim());
+    formData.append("price", price);
+    formData.append("stock", stock);
+    formData.append("category", categoryId);
+
+    if (newImageFile) {
+      formData.append("image", newImageFile); // Kirim file baru
+      console.log("FRONTEND: Appending new image file to FormData:", newImageFile.name);
+    } else if (removeCurrentImage && currentImageUrl) {
+      // Sinyal ke backend untuk menghapus gambar yang ada dengan mengirimkan string kosong untuk image_url.
+      // Ini sesuai dengan logika di backend PUT handler Anda (multipart/form-data).
+      formData.append("image_url", ""); 
+      console.log("FRONTEND: Signaling current image removal to backend (image_url: '')");
     }
+    // Jika tidak ada newImageFile dan removeCurrentImage false,
+    // maka tidak ada field 'image' atau 'image_url' (kosong) yang dikirim.
+    // Backend Anda (bagian multipart/form-data di PUT) akan mengabaikan update gambar jika field ini tidak ada.
 
-
-    const productData = {
-      id: productId, // Sertakan ID untuk update
-      name,
-      description,
-      price: parseFloat(price),
-      stock: parseInt(stock, 10),
-      category: categoryId, // Backend akan mengambil categoryId dari sini
-      image: imageUrl, // Kirim URL gambar (bisa string kosong jika tidak diubah/dihapus)
-    };
-
+    console.log("FRONTEND: Submitting product update with FormData...");
+    for (const [key, value] of formData.entries()) {
+        console.log(`FRONTEND FormData (Update): ${key} = `, value instanceof File ? value.name : value);
+    }
+    
     try {
-      console.log("Submitting product update with data:", productData)
-
-      const res = await fetch(`/api/products`, { // Endpoint PUT Anda
+      const res = await fetch(`/api/products`, { // Endpoint PUT Anda adalah /api/products
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(productData),
+        body: formData,
       });
 
       const responseText = await res.text();
-      console.log("Server response text:", responseText);
-
+      console.log("FRONTEND: Server Response Status (Update):", res.status, res.statusText);
+      console.log("FRONTEND: Server Response Text (Update):", responseText);
+      
       let responseData;
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error("Failed to parse response as JSON:", parseError);
+        console.error("FRONTEND: Failed to parse server response as JSON (Update):", parseError);
         if (responseText.toLowerCase().includes("<html")) {
-          throw new Error("Server returned an HTML error page. Check server logs.");
+          setError("Server returned an HTML error page. Check server logs.");
+        } else {
+          setError(`Server returned unparseable response (Status: ${res.status}): ${responseText.substring(0, 200)}...`);
         }
-        throw new Error(`Server returned invalid response format: ${responseText.substring(0,100)}`);
+        setSubmitting(false);
+        return;
       }
-
+      console.log("FRONTEND: Parsed Server Response Data (Update):", responseData);
 
       if (!res.ok) {
-        const errorMessage = responseData?.error || responseData?.message || `Failed to update product (${res.status} ${res.statusText})`
-        console.error("Server error response data:", responseData);
+        const errorMessage = responseData?.error || responseData?.message || `Failed to update product. Status: ${res.status}`;
+        console.error("FRONTEND: Server error after parsing JSON (Update):", errorMessage, "Full response data:", responseData);
         throw new Error(errorMessage);
       }
 
       alert("Product updated successfully!");
-      router.push("/admin/product"); // Ganti dengan rute halaman produk Anda
-      router.refresh(); // Refresh data setelah update
-    } catch (err) {
-      console.error("Update error:", err);
-      setError("Failed to update product. Please try again.");
+      router.push("/admin/product");
+      router.refresh();
+    } catch (err: any) {
+      console.error("FRONTEND: Error during product update:", err);
+      setError(err.message || "An unexpected error occurred during update. Please check console.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
+  // JSX (Struktur visual Anda sudah bagus)
+  if (loadingInitialData) {
+    return <div className="flex justify-center items-center h-screen text-xl">Loading product data...</div>;
+  }
+  // Tampilkan error spesifik jika produk tidak ditemukan setelah loading selesai
+  if (!loadingInitialData && error && (error.includes("Product not found") || error.includes("Product ID is missing"))) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-100">
-        <div className="text-center p-10 bg-white rounded-lg shadow-xl">
-          <svg className="animate-spin h-10 w-10 text-indigo-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <p className="text-xl font-semibold text-gray-700">Loading product data...</p>
+        <div className="max-w-2xl mx-auto py-10 px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-2xl font-semibold text-red-600 mb-4">Error</h2>
+            <p className="text-gray-700 mb-6">{error}</p>
+            <button
+                onClick={() => router.push("/admin/product")}
+                className="px-5 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition"
+            >
+                Back to Products
+            </button>
         </div>
-      </div>
     );
   }
-
-  if (error && error.includes("Product not found")) { // Lebih spesifik dalam mengecek error
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-100">
-        <div className="text-center p-10 bg-white rounded-lg shadow-xl">
-          <h1 className="text-3xl font-bold text-red-600 mb-4">
-            Product Not Found
-          </h1>
-          <p className="text-gray-700 mb-6 text-lg">
-            The product you are trying to edit (ID: {productId}) does not exist or could not be loaded.
-          </p>
-          <button
-            onClick={() => router.push("/admin/product")} // Ganti dengan rute halaman produk Anda
-            className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-transform transform hover:scale-105"
-          >
-            Back to Products
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-
+  
   return (
     <div className="max-w-2xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Edit Product</h1>
-        <button
-          onClick={() => router.push("/admin/product")} // Ganti dengan rute halaman produk Anda
-          className="px-5 py-2 bg-gray-600 text-white rounded-lg shadow hover:bg-gray-700 transition-colors"
+        <button 
+            onClick={() => router.push("/admin/product")}
+            className="px-5 py-2 bg-gray-700 text-white rounded-lg shadow-md hover:bg-gray-800 transition"
         >
-          Back to Products
+            Back to Products
         </button>
       </div>
 
-      {error && !error.includes("Product not found") && ( // Tampilkan error umum di sini
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md shadow-sm" role="alert">
-          <p className="font-bold">Error</p>
-          <p>{error}</p>
-        </div>
+      {error && ( // Tampilkan error umum lainnya di sini
+           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md shadow-sm" role="alert">
+             <p className="font-bold">Error</p>
+             <p>{error}</p>
+           </div>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6 bg-white p-8 rounded-xl shadow-xl"
-      >
-        {/* Product Name */}
+      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-xl shadow-xl">
+        {/* Nama Produk */}
         <div>
-          <label
-            htmlFor="name"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Product Name
-          </label>
-          <input
-            id="name"
-            type="text"
-            placeholder="Enter product name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            required
-          />
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+          <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+        </div>
+        {/* Deskripsi Produk */}
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm h-32" />
+        </div>
+        {/* Harga */}
+        <div>
+          <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Price (Rp)</label>
+          <input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} required min="0" className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
+        </div>
+        {/* Stok */}
+        <div>
+          <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
+          <input id="stock" type="number" value={stock} onChange={(e) => setStock(e.target.value)} required min="0" className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
         </div>
 
-        {/* Product Description */}
+        {/* Bagian Edit Gambar */}
         <div>
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Description
-          </label>
-          <textarea
-            id="description"
-            placeholder="Enter product description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm h-32"
-            required
-          />
-        </div>
-
-        {/* Price */}
-        <div>
-          <label
-            htmlFor="price"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Price (Rp)
-          </label>
-          <input
-            id="price"
-            type="number"
-            placeholder="Enter price"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            min="0"
-            // step="0.01" // Hapus jika harga Rupiah
-            required
-          />
-        </div>
-
-        {/* Stock */}
-        <div>
-          <label
-            htmlFor="stock"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Stock
-          </label>
-          <input
-            id="stock"
-            type="number"
-            placeholder="Enter stock quantity"
-            value={stock}
-            onChange={(e) => setStock(e.target.value)}
-            className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            min="0"
-            required
-          />
-        </div>
-
-
-        {/* Image URL Input */}
-        <div>
-          <label
-            htmlFor="imageUrl"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Product Image URL
-          </label>
-          <input
-            id="imageUrl"
-            type="url"
-            placeholder="Enter new image URL (leave blank to keep current)"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            // 'required' dihapus, karena pengguna mungkin tidak ingin mengubah gambar
-          />
-          {imageUrl && ( // Hanya tampilkan preview jika ada URL
-            <div className="mt-4">
-              <p className="text-xs font-medium text-gray-600 mb-1">Preview:</p>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
+          {/* Tampilkan gambar saat ini jika ada, belum ada preview baru, dan tidak ditandai untuk dihapus */}
+          {currentImageUrl && !newImagePreviewUrl && !removeCurrentImage && (
+            <div className="mt-2 mb-4">
+              <p className="text-xs font-medium text-gray-600 mb-1">Current Image:</p>
               <div className="relative h-40 w-full sm:w-64 overflow-hidden rounded-md border border-gray-200">
-                <Image
-                  src={imageUrl}
-                  alt="Product Preview"
-                  fill
-                  className="object-contain"
-                  onError={() => {
-                     console.warn("Failed to load image preview from URL:", imageUrl);
-                     // Di sini Anda bisa setImageUrl ke string error atau placeholder jika URL tidak valid
-                  }}
-                />
-                <button
-                  type="button"
-                  className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full text-xs hover:bg-red-600 transition-colors"
-                  onClick={() => setImageUrl("")} // Mengosongkan URL akan berarti tidak ada gambar baru
-                  aria-label="Remove image URL"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
+                <Image src={currentImageUrl} alt="Current Product Image" fill className="object-contain" />
               </div>
             </div>
           )}
+
+          {/* Tampilkan preview gambar baru jika ada */}
+          {newImagePreviewUrl && (
+            <div className="mt-2 mb-4">
+              <p className="text-xs font-medium text-gray-600 mb-1">New Image Preview:</p>
+              <div className="relative h-40 w-full sm:w-64 overflow-hidden rounded-md border border-gray-200">
+                <Image src={newImagePreviewUrl} alt="New Image Preview" fill className="object-contain" />
+              </div>
+            </div>
+          )}
+          
+          {/* Pesan jika gambar akan dihapus */}
+          {removeCurrentImage && (
+             <p className="mt-2 mb-2 text-sm text-red-600">Current image will be removed upon update.</p>
+          )}
+
+          {/* Input untuk memilih file gambar baru */}
+          <input
+            id="newImageFile"
+            type="file"
+            accept="image/*"
+            onChange={handleNewImageChange}
+            className="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            {currentImageUrl && !removeCurrentImage ? "Select a new image to change the current one." : "Select an image."}
+            {!removeCurrentImage && " Leave blank to keep the current image (if any)."}
+          </p>
+
+          {/* Tombol untuk menghapus/membatalkan penghapusan gambar saat ini */}
+          {currentImageUrl && ( // Hanya tampilkan jika ada gambar saat ini
+            <button
+              type="button"
+              onClick={() => {
+                if (removeCurrentImage) { // Jika sedang ditandai hapus, batalkan
+                    setRemoveCurrentImage(false);
+                } else { // Jika tidak, tandai untuk dihapus
+                    setRemoveCurrentImage(true);
+                    setNewImageFile(null); 
+                    setNewImagePreviewUrl(null);
+                    const fileInput = document.getElementById('newImageFile') as HTMLInputElement;
+                    if (fileInput) fileInput.value = ""; // Reset input file
+                }
+              }}
+              className={`mt-2 text-sm ${removeCurrentImage ? "text-blue-600 hover:text-blue-800" : "text-red-600 hover:text-red-800"} disabled:opacity-50`}
+              disabled={newImageFile !== null && !removeCurrentImage} // Disable "Remove" jika sedang memilih file baru, kecuali jika "Remove" sudah aktif
+            >
+              {removeCurrentImage ? "Cancel Image Removal" : "Remove Current Image"}
+            </button>
+          )}
         </div>
 
-        {/* Category Selection */}
+        {/* Pemilihan Kategori */}
         <div>
-          <label
-            htmlFor="category"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Category
-          </label>
-          <select
-            id="category"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
+          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <select 
+            id="category" 
+            value={categoryId} 
+            onChange={(e) => setCategoryId(e.target.value)} 
+            required 
+            disabled={categoriesLoading || loadingInitialData}
             className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            required
           >
-            <option value="" disabled>Select a category</option>
+            <option value="" disabled>{categoriesLoading ? "Loading categories..." : "Select a category"}</option>
+            {!categoriesLoading && categories.length === 0 && <option value="" disabled>No categories available</option>}
             {categories.map((category) => (
               <option key={category.id} value={category.id.toString()}>
                 {category.name}
@@ -350,26 +347,16 @@ export default function EditProductPage() {
           </select>
         </div>
 
-        {/* Submit Button */}
+        {/* Tombol Submit */}
         <div className="flex justify-end pt-4">
-          <button
-            type="submit"
-            disabled={submitting}
-            className={`px-8 py-3 rounded-lg text-white font-semibold shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 ${
-              submitting ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
+          <button 
+            type="submit" 
+            disabled={submitting || loadingInitialData || categoriesLoading}
+            className={`px-6 py-3 rounded-lg text-white font-semibold shadow-md transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                (submitting || loadingInitialData || categoriesLoading) ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
             }`}
           >
-            {submitting ? (
-              <div className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Updating...
-              </div>
-            ) : (
-              "Update Product"
-            )}
+            {submitting ? "Updating..." : "Update Product"}
           </button>
         </div>
       </form>
