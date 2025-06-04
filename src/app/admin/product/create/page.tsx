@@ -51,15 +51,13 @@ export default function CreateProductPage() {
         if (data.length > 0 && !selectedCategoryId) {
           setSelectedCategoryId(data[0].id.toString()); // Set kategori pertama sebagai default
         }
-      } catch (err: any) { // Lebih baik menggunakan 'any' atau 'unknown' dan type guard
+      } catch (err) {
         console.error("FRONTEND: Exception while fetching categories:", err);
-        setError(err.message || "Could not load categories. Please try again.");
-      } finally {
-        setCategoriesLoading(false);
+        setError(`Could not load categories:`);
       }
-    };
-    fetchCategories();
-  }, []); // Dependency array kosong sudah benar agar hanya fetch sekali
+    }
+    fetchCategories()
+  },); // Dependency array kosong agar hanya fetch sekali
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -148,12 +146,12 @@ export default function CreateProductPage() {
       console.log("FRONTEND: Product created successfully! Server Data:", responseData);
       alert("Product created successfully!");
       resetForm();
-      router.push("/admin/product"); // Arahkan ke daftar produk atau halaman detail jika ada
-      router.refresh(); // Penting untuk memuat ulang data di halaman tujuan jika menggunakan cache Next.js
-    } catch (err: any) {
+      router.push("/admin/product"); // Sesuaikan rute jika perlu
+      router.refresh(); // Untuk memastikan data baru diambil jika halaman produk menampilkan daftar
+    } catch (err) { // Menangkap semua error dari fetch, parsing, atau !res.ok
       console.error("FRONTEND: Error during product submission:", err);
-      setError(err.message || "An unexpected error occurred during submission. Please check console.");
-      // Tidak perlu alert di sini karena sudah ada tampilan error di form
+      setError("An unexpected error occurred during submission."); // Tampilkan error di UI
+      alert(`Failed to create product. Please check the console and try again.`);
     } finally {
       setLoading(false);
     }
