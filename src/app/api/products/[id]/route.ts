@@ -1,8 +1,11 @@
 // app/api/products/[id]/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'; // Impor NextRequest
 import { prisma } from '../../../../../lib/prisma';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest, // Gunakan NextRequest di sini
+  { params }: { params: { id: string } }
+) {
   const productId = parseInt(params.id, 10);
 
   if (isNaN(productId)) {
